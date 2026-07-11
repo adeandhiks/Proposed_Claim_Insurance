@@ -104,7 +104,7 @@ export function ClaimsTable({ claims, isLoading }: ClaimsTableProps) {
                       ? 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20'
                       : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20';
                   return (
-                    <TooltipProvider delayDuration={200}>
+                    <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <span role="button" tabIndex={0} className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors hover:opacity-80 cursor-help ${statusColor}`}>
