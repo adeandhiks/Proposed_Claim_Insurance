@@ -57,7 +57,7 @@ export function ClaimsTable({ claims, isLoading }: ClaimsTableProps) {
   }
 
   return (
-    <div className="rounded-lg border">
+    <div className="rounded-lg border overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
@@ -91,7 +91,7 @@ export function ClaimsTable({ claims, isLoading }: ClaimsTableProps) {
               <TableCell className="text-right font-mono">
                 {claim.total_bill ? formatCurrency(claim.total_bill) : '-'}
               </TableCell>
-              <TableCell className="max-w-[250px]">
+              <TableCell className="min-w-[300px]">
                 {(() => {
                   const ai = claim.ai_result as unknown as AiAnalysisResult | null;
                   if (!ai?.reason) return <span className="text-muted-foreground text-xs">Belum dianalisis</span>;
@@ -105,7 +105,7 @@ export function ClaimsTable({ claims, isLoading }: ClaimsTableProps) {
                         {ai.status === 'APPROVED' ? '✅' : ai.status === 'REJECTED' ? '❌' : '⚠️'}
                         {ai.confidence ? ` ${Math.round(ai.confidence * 100)}%` : ''}
                       </span>
-                      <p className="text-muted-foreground mt-0.5 line-clamp-2">{ai.reason}</p>
+                      <p className="text-muted-foreground mt-0.5">{ai.reason}</p>
                     </div>
                   );
                 })()}
