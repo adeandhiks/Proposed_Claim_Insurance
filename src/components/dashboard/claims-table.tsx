@@ -12,7 +12,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { ClaimStatusBadge } from '@/components/claims/claim-status-badge';
 import { formatCurrency } from '@/utils/ocr-parser';
-import type { Claim } from '@/types/claim';
+import type { Claim, AiAnalysisResult } from '@/types/claim';
 
 interface ClaimsTableProps {
   claims: Claim[] | undefined;
@@ -65,6 +65,7 @@ export function ClaimsTable({ claims, isLoading }: ClaimsTableProps) {
             <TableHead>Rumah Sakit</TableHead>
             <TableHead>Diagnosa</TableHead>
             <TableHead className="text-right">Total Tagihan</TableHead>
+            <TableHead>AI Analisis</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>
@@ -89,6 +90,25 @@ export function ClaimsTable({ claims, isLoading }: ClaimsTableProps) {
               <TableCell>{claim.diagnosis || '-'}</TableCell>
               <TableCell className="text-right font-mono">
                 {claim.total_bill ? formatCurrency(claim.total_bill) : '-'}
+              </TableCell>
+              <TableCell className="max-w-[250px]">
+                {(() => {
+                  const ai = claim.ai_result as unknown as AiAnalysisResult | null;
+                  if (!ai?.reason) return <span className="text-muted-foreground text-xs">Belum dianalisis</span>;
+                  return (
+                    <div className="text-xs leading-relaxed">
+                      <span className={`inline-flex items-center gap-1 font-semibold ${
+                        ai.status === 'APPROVED' ? 'text-emerald-600 dark:text-emerald-400' :
+                        ai.status === 'REJECTED' ? 'text-red-600 dark:text-red-400' :
+                        'text-amber-600 dark:text-amber-400'
+                      }`}>
+                        {ai.status === 'APPROVED' ? '✅' : ai.status === 'REJECTED' ? '❌' : '⚠️'}
+                        {ai.confidence ? ` ${Math.round(ai.confidence * 100)}%` : ''}
+                      </span>
+                      <p className="text-muted-foreground mt-0.5 line-clamp-2">{ai.reason}</p>
+                    </div>
+                  );
+                })()}
               </TableCell>
               <TableCell>
                 <ClaimStatusBadge status={claim.status} />
