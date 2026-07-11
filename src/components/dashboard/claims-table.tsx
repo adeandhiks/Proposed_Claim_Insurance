@@ -10,6 +10,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ClaimStatusBadge } from '@/components/claims/claim-status-badge';
 import { formatCurrency } from '@/utils/ocr-parser';
 import type { Claim, AiAnalysisResult } from '@/types/claim';
@@ -91,22 +92,33 @@ export function ClaimsTable({ claims, isLoading }: ClaimsTableProps) {
               <TableCell className="text-right font-mono">
                 {claim.total_bill ? formatCurrency(claim.total_bill) : '-'}
               </TableCell>
-              <TableCell className="min-w-[300px]">
+              <TableCell>
                 {(() => {
                   const ai = claim.ai_result as unknown as AiAnalysisResult | null;
-                  if (!ai?.reason) return <span className="text-muted-foreground text-xs">Belum dianalisis</span>;
+                  if (!ai?.reason) return <span className="text-muted-foreground text-xs italic">Menunggu...</span>;
+                  const statusLabel = ai.status === 'APPROVED' ? 'Disetujui' : ai.status === 'REJECTED' ? 'Ditolak' : 'Perlu Review';
+                  const statusIcon = ai.status === 'APPROVED' ? '✅' : ai.status === 'REJECTED' ? '❌' : '⚠️';
+                  const statusColor = ai.status === 'APPROVED'
+                    ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
+                    : ai.status === 'REJECTED'
+                      ? 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20'
+                      : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20';
                   return (
-                    <div className="text-xs leading-relaxed">
-                      <span className={`inline-flex items-center gap-1 font-semibold ${
-                        ai.status === 'APPROVED' ? 'text-emerald-600 dark:text-emerald-400' :
-                        ai.status === 'REJECTED' ? 'text-red-600 dark:text-red-400' :
-                        'text-amber-600 dark:text-amber-400'
-                      }`}>
-                        {ai.status === 'APPROVED' ? '✅' : ai.status === 'REJECTED' ? '❌' : '⚠️'}
-                        {ai.confidence ? ` ${Math.round(ai.confidence * 100)}%` : ''}
-                      </span>
-                      <p className="text-muted-foreground mt-0.5">{ai.reason}</p>
-                    </div>
+                    <TooltipProvider delayDuration={200}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors hover:opacity-80 cursor-help ${statusColor}`}>
+                            <span>{statusIcon}</span>
+                            <span>{statusLabel}</span>
+                            {ai.confidence ? <span className="opacity-70">({Math.round(ai.confidence * 100)}%)</span> : null}
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="max-w-sm p-3">
+                          <p className="text-xs font-semibold mb-1">Hasil Analisis AI</p>
+                          <p className="text-xs leading-relaxed">{ai.reason}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   );
                 })()}
               </TableCell>
