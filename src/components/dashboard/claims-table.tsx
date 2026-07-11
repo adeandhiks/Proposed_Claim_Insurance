@@ -106,12 +106,12 @@ export function ClaimsTable({ claims, isLoading }: ClaimsTableProps) {
                   return (
                     <TooltipProvider>
                       <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span role="button" tabIndex={0} className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors hover:opacity-80 cursor-help ${statusColor}`}>
+                        <TooltipTrigger
+                          render={<span role="button" tabIndex={0} className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors hover:opacity-80 cursor-help ${statusColor}`} />}
+                        >
                             <span>{statusIcon}</span>
                             <span>{statusLabel}</span>
                             {ai.confidence ? <span className="opacity-70">({Math.round(ai.confidence * 100)}%)</span> : null}
-                          </span>
                         </TooltipTrigger>
                         <TooltipContent side="bottom" className="max-w-sm p-3">
                           <p className="text-xs font-semibold mb-1">Hasil Analisis AI</p>
