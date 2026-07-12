@@ -67,34 +67,62 @@ Jawab HANYA JSON ini: {"status":"APPROVED atau REJECTED atau NEED_REVIEW","confi
       console.log('[AI Provider] Response received, finish_reason:', data.choices?.[0]?.finish_reason);
 
       const message = data.choices?.[0]?.message;
-      // Try content first, then reasoning fields (for step/reasoning models)
-      const content = message?.content || message?.reasoning_content || message?.reasoning || '';
+      
+      // Try to find valid JSON from each field (content first, then reasoning fields)
+      const fields = [
+        message?.content,
+        message?.reasoning_content,
+        message?.reasoning,
+      ].filter(Boolean) as string[];
 
-      console.log('[AI Provider] Content length:', content.length);
-      console.log('[AI Provider] Content preview:', content.substring(0, 200));
+      console.log('[AI Provider] Available fields:', fields.map((f, i) => `field${i}: ${f.substring(0, 80)}...`));
 
-      if (!content) {
-        console.error('[AI Provider] Empty response. Full data:', JSON.stringify(data).substring(0, 500));
-        throw new Error('AI tidak mengembalikan respons');
+      let parsedResult: AiAnalysisResult | null = null;
+
+      for (const field of fields) {
+        // Look for JSON object with status field
+        const jsonMatch = field.match(/\{[^{}]*"status"\s*:\s*"[^"]+?"[^{}]*\}/);
+        if (jsonMatch) {
+          try {
+            const candidate = JSON.parse(jsonMatch[0]) as AiAnalysisResult;
+            if (['APPROVED', 'REJECTED', 'NEED_REVIEW'].includes(candidate.status)) {
+              parsedResult = candidate;
+              console.log('[AI Provider] Found valid JSON in field');
+              break;
+            }
+          } catch {
+            continue;
+          }
+        }
       }
 
-      // Parse JSON from response (handle markdown code blocks)
-      const jsonMatch = content.match(/\{[\s\S]*?\}/);
-      if (!jsonMatch) {
-        throw new Error(`AI tidak mengembalikan format JSON. Response: ${content.substring(0, 200)}`);
+      if (!parsedResult) {
+        // Fallback: try broader JSON match on all fields combined
+        const allText = fields.join('\n');
+        const broadMatch = allText.match(/\{[\s\S]*?"status"\s*:\s*"(?:APPROVED|REJECTED|NEED_REVIEW)"[\s\S]*?\}/);
+        if (broadMatch) {
+          try {
+            parsedResult = JSON.parse(broadMatch[0]) as AiAnalysisResult;
+          } catch {
+            // ignore
+          }
+        }
       }
 
-      const result = JSON.parse(jsonMatch[0]) as AiAnalysisResult;
+      if (!parsedResult) {
+        const preview = fields.map(f => f.substring(0, 100)).join(' | ');
+        throw new Error(`AI tidak mengembalikan format JSON valid. Preview: ${preview}`);
+      }
 
       // Validate the result structure
-      if (!['APPROVED', 'REJECTED', 'NEED_REVIEW'].includes(result.status)) {
-        throw new Error('Status AI tidak valid: ' + result.status);
+      if (!['APPROVED', 'REJECTED', 'NEED_REVIEW'].includes(parsedResult.status)) {
+        throw new Error('Status AI tidak valid: ' + parsedResult.status);
       }
 
       return {
-        status: result.status,
-        confidence: Math.min(1, Math.max(0, result.confidence || 0.5)),
-        reason: result.reason || 'Tidak ada penjelasan.',
+        status: parsedResult.status,
+        confidence: Math.min(1, Math.max(0, parsedResult.confidence || 0.5)),
+        reason: parsedResult.reason || 'Tidak ada penjelasan.',
       };
     } catch (error) {
       console.error('[AI Provider] Error:', error);
