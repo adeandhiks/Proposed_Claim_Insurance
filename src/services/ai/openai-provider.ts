@@ -17,9 +17,7 @@ export class OpenAIProvider implements IAiService {
     ocrText: string
   ): Promise<AiAnalysisResult> {
     try {
-      const prompt = `Evaluasi claim asuransi kesehatan berikut dan jawab HANYA dalam format JSON (tanpa markdown, tanpa penjelasan lain):
-
-Data Claim:
+      const prompt = `Data Claim:
 - Nama Pasien: ${claimData.patient_name}
 - Rumah Sakit: ${claimData.hospital_name}
 - Tanggal: ${claimData.claim_date}
@@ -28,9 +26,10 @@ Data Claim:
 
 Teks OCR: ${ocrText.substring(0, 500)}
 
-Kriteria: APPROVED jika data valid dan wajar. REJECTED jika ada ketidaksesuaian. NEED_REVIEW jika >Rp10.000.000 atau perlu verifikasi.
-
-Jawab HANYA JSON ini: {"status":"APPROVED atau REJECTED atau NEED_REVIEW","confidence":0.0-1.0,"reason":"penjelasan dalam Bahasa Indonesia"}`;
+Kriteria evaluasi:
+- APPROVED: data lengkap, valid, dan tagihan wajar
+- REJECTED: ada ketidaksesuaian data signifikan
+- NEED_REVIEW: tagihan >Rp10.000.000 atau perlu verifikasi lebih lanjut`;
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 55000);
@@ -47,12 +46,17 @@ Jawab HANYA JSON ini: {"status":"APPROVED atau REJECTED atau NEED_REVIEW","confi
           model: this.model,
           messages: [
             {
+              role: 'system',
+              content: 'Kamu adalah evaluator claim asuransi kesehatan. Kamu HARUS menjawab HANYA dengan satu JSON object tanpa teks lain. Format: {"status":"APPROVED","confidence":0.95,"reason":"penjelasan singkat"}. Nilai status HARUS salah satu dari: APPROVED, REJECTED, atau NEED_REVIEW. Confidence antara 0.0-1.0. Reason dalam Bahasa Indonesia. JANGAN tulis apapun selain JSON.',
+            },
+            {
               role: 'user',
               content: prompt,
             },
           ],
-          temperature: 0.3,
-          max_tokens: 1000,
+          temperature: 0.1,
+          max_tokens: 500,
+          response_format: { type: 'json_object' },
         }),
       });
 
